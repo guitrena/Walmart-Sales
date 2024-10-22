@@ -166,4 +166,128 @@ The dashboard indicates correlations between sales in this department and all th
 
 ## 3. Modelling
 
-:warning: <span style="color:red">In process</span>.
+The original competition aimed to estimate the weekly sales for the test set, but in our case, we are estimating the sales for the last year of data to compare the predictions with the actual values. Therefore, the markdown features (which are only present for the last year) were removed since we cannot extrapolate these for the entire year without further information about these variables.
+
+### Process 
+
+When it comes to modeling, the first critical step is choosing the right strategy. This becomes even more important when dealing with a large dataset that needs to be broken down into manageable parts.
+
+In this case, we trained several models by considering each combination of department and store. The selected models were similar in nature:
+- **SARIMA:** A time series forecasting model designed to handle data with seasonal patterns.
+- **SARIMAX:** An extension of SARIMA that includes external variables to enhance the analysis.
+
+After selecting the models, we implemented a strategy to choose the external variables for each model. This was based on the results of the ANOVA and Pearson tests conducted earlier, which compared each feature to the Weekly Sales. If a feature showed significant correlation, it was included in the SARIMAX model. For some cases where no features were correlated, the SARIMAX model was not trained.
+
+To save time, the models were trained using **AUTO ARIMA**, which automatically selects the appropriate terms for each model.
+
+Finally, we plotted the historical data alongside the forecast to analyze the results.
+
+Additionally, we decided to limit this strategy to a reduced number of models. Specifically, we chose to train models only for **Departments 22 and 28, and Store 1**, which reduced the number of cases from 3,211 to 160. This decision was due to computational constraints. For example, the batch selected took nearly 6 hours to process. By estimating the time required to train the entire dataset, it would have taken approximately 120 hours.
+
+Below is a diagram summarizing the entire process:
+<p align="center">
+  <img src="./Images/process_diagram.png" />
+</p>
+
+### Results
+
+We trained the Store-Department combinations for the following:
+- Department 22
+- Department 28
+- Store 1
+
+For each group, we present a summary that shows the best, average, and worst error percentage (RMSE/Average Weekly Sales) within the group. We also show the percentage breakdown of the best-performing models, categorized as **SARIMA** (no SARIMAX trained), **SARIMA(x)** (SARIMA was the best model between the two), and **SARIMAX** (SARIMAX was the best model between the two).
+
+After that, we plot and analyze the best and worst cases within each group, correcting the model if necessary.
+
+#### Department 22
+
+> **Summary key points:**
+> - Minimum and average percentage errors are relatively similar. The difference seems to stem from extreme values (the worst case having a 47.62% error).
+> - More than 70% of combinations have correlated features.
+> - External variables are relevant in only 32% of the cases.
+>
+><p align="center">
+>  <img src="./Images/summary22.png" />
+></p>
+
+> **Best prediction:** Store 23 with a 12.13% error. Key points:
+> - The model used is **SARIMA.**
+> - The worst predictions are during two sales peaks (Christmas and the last week of August).
+> - The Christmas peak is not as poorly predicted as it seems. The week before Christmas is overestimated by 5,954, and Christmas week is underestimated by 6,784. If these two weeks are aggregated into a "Christmas period," the underestimation is just 838 for the whole period.
+> - As for the second period (August), we lack context to explain the peak. Without knowing what the department represents and where the store is located, it is difficult to understand the underestimation fully.
+>
+><p align="center">
+>  <img src="./Images/best22.png" />
+></p>
+
+> **Worst prediction:** Store 39 with a 47.62% error. Key points:
+> - The model used is **SARIMA.**
+> - It is clear that the terms selected for the ARIMA model are incorrect.
+> - After correcting the model, by adjusting the AUTO ARIMA range (specifically, modifying the "D" value, which was preset to 1), the error was reduced from 47.62% to 15.06%. This correction also brought down the average error from 20.21% to 19.33%.
+> - Other cases may have similar issues.
+><p align="center">
+>  <img src="./Images/worst22.png" />
+></p>
+>
+> After the correction, the model changed from ARIMA(1,0,1)(1,1,0)[52] to ARIMA(1,1,2)(1,0,0)[52].
+>
+><p align="center">
+>  <img src="./Images/worst22_corrected.png" />
+></p>
+
+#### Department 28
+> **Summary key points:**
+> - The worst case shows an extremely high error percentage (119.76%).
+> - 95% of combinations show correlated features, but only 23% of cases performed better with the SARIMAX model.
+>
+><p align="center">
+>  <img src="./Images/summary28.png" />
+></p>
+
+>**Best prediction:** Store 23 with a 12.13% error. Key points:
+> - The best model is **SARIMA** (SARIMAX also trained).
+> - SARIMA generally tends to overestimate sales, while SARIMAX usually underestimates, a combination of both may be better.
+><p align="center">
+>  <img src="./Images/best28.png" />
+></p>
+
+> The worst prediction is for store 39 with 119.76% of error. Key points:
+> - The model used is **SARIMA.**
+> - The high error percentage is driven by an extreme peak in sales during the last week of May. This peak occurred in 2011 but was not present in 2010 or 2009. We lack contextual information about the department and location to explain the sudden spike in 2011.
+>
+><p align="center">
+>  <img src="./Images/worst28.png" />
+></p>
+
+#### Store 1
+
+> **Summary key points:**
+> - The worst case has a significant error percentage (175.1%).
+> - The best case, however, shows a very strong result with an error of only 4.12%.
+> - 70% of combinations show correlated features, but only 29% of the cases perform better with the SARIMAX model.
+><p align="center">
+>  <img src="./Images/summary1.png" />
+></p>
+
+>**Best prediction:** Department 95 with a 4.12% error. Key points:
+> - The best model is **SARIMAX** (SARIMA also trained).
+> - The prediction is quite accurate.
+><p align="center">
+>  <img src="./Images/best1.png" />
+></p>
+
+>**Worst prediction:** Department 59 with a 175.1% error. Key points:
+> - The best model is **SARIMA** (SARIMAX also trained).
+> - The high error is primarily due to an overestimation during the Christmas sales peak. In 2011, the peak was three times larger than in 2012, leading to the significant overestimation.
+> - Without more context, it's difficult to explain the large variation between the two years.
+> - Although SARIMA had a better RMSE, the SARIMAX model performed better when excluding the peak.
+><p align="center">
+>  <img src="./Images/worst1.png" />
+></p>
+
+## 4. Next steps
+- Train additional models (e.g., regression models) and apply bagging techniques.
+- Develop dashboards to analyze store or Store-Department combinations.
+- Train and optimize models for all Store-Department combinations.
+
